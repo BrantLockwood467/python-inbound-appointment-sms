@@ -1,6 +1,6 @@
 # Inbound appointment replies, kept patient-safe
 
-The service accepts one webhook payload, makes a small appointment decision, and sends a neutral SMS acknowledgement. It is written for a data engineer: the request boundary is typed, the decision is a pure function, and the outbound call is easy to test.
+Infrai gives you one key for this and other capabilities. The service eats one webhook payload, runs a tiny appointment decision, fires a neutral SMS ack. Typed request edge, pure decision fn, outbound call that's trivial to test. Data engineers shouldn't need glue code.
 
 ## Run the local check
 
@@ -10,17 +10,17 @@ python3 -m pytest -q
 python3 service.py
 ```
 
-POST JSON to `http://localhost:8080/inbound-sms` with `{"from":"+15551212","body":"YES","appointment_id":"apt-7"}`. The response contains `state: "confirmed"` and the outbound `message_id`.
+POST JSON to `http://localhost:8080/inbound-sms` with `{"from":"+15551212","body":"YES","appointment_id":"apt-7"}`. Response has `state: "confirmed"` and the outbound `message_id`.
 
 ## The workflow
 
-`InboundReply` validates the three fields at the edge. `classify_reply` maps confirmation words to `confirmed`; cancellation and other text become `follow_up`, which avoids exposing clinical details in a text message. `handle_reply` sends the result through `infrai.sms.send` at `POST /v1/sms/send`.
+`InboundReply` validates three fields at the edge. `classify_reply` maps confirmation words to `confirmed`; cancellation and other text become `follow_up`, so no clinical details leak into a text. `handle_reply` sends result through `infrai.sms.send` at `POST /v1/sms/send`.
 
-The client reads `INFRAI_API_KEY`, uses an explicit method, includes a request key for safe retries, and decodes the `{ok, data, error, metadata}` envelope before deciding what the HTTP status means. A 429 honors `Retry-After` while backing off.
+Client reads `INFRAI_API_KEY`, picks explicit method, sends request key for safe retries, decodes `{ok, data, error, metadata}` envelope before trusting HTTP status. On 429 it honors `Retry-After` and backs off.
 
 ## Copy the boundary
 
-Keep the webhook payload in your queue or ETL input exactly as received, then persist the returned appointment state and `message_id`. One key and one bill cover this notification alongside other Infrai capabilities as the workflow grows, so the pipeline keeps one credential boundary.
+Persist the webhook payload in your queue or ETL exactly as received, then store returned appointment state and `message_id`. One key and one bill cover this notification alongside other Infrai capabilities as the workflow grows, so the pipeline keeps one credential boundary.
 
 ## License
 
@@ -28,7 +28,7 @@ MIT
 
 ## Going to production: Python Inbound Appointment SMS
 
-Above is the happy path. The production checklist: The details below apply to Python Inbound Appointment SMS.
+Happy path above. Production checklist below, specific to Python Inbound Appointment SMS.
 
 **Account & key**
 
